@@ -1494,23 +1494,34 @@ local function BuffAlertApplyExtra(button, d, style)
     local mode = ma.displayMode or "text"
     if not d.maText then
         d.maText = button:CreateFontString(nil, "OVERLAY")
+        d.maText:SetPoint("CENTER", button, "CENTER", 0, 0)
+        d.maIconBorder = button:CreateTexture(nil, "BACKGROUND")
+        d.maIconBorder:SetAllPoints(button)
+        d.maIconBorder:SetColorTexture(0, 0, 0, 1)
+        d.maIcon = button:CreateTexture(nil, "ARTWORK")
+        d.maIcon:SetPoint("TOPLEFT", button, "TOPLEFT", 2, -2)
+        d.maIcon:SetPoint("BOTTOMRIGHT", button, "BOTTOMRIGHT", -2, 2)
+        d.maIcon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
     end
     local entry = style.maEntry
     local label = (entry and (entry.customText or entry.spellName)) or "Active!"
     local r, g, b = ResolveAlertColor("textColor", "textColorUseClass")
-    local fp = (EllesmereUI.GetFontPath("qol")) or STANDARD_TEXT_FONT
-    d.maText:SetFont(fp, ma.textSize or 16, "OUTLINE")
+    local fontSize = math.max(8, math.min(72, ma.textSize or 24))
+    local outline = AlertFontOutline()
+    if not d.maText:SetFont(AlertFontPath(), fontSize, outline) then
+        d.maText:SetFont(FALLBACK_FONT, fontSize, outline)
+    end
     d.maText:SetTextColor(r, g, b)
-    d.maText:ClearAllPoints()
+    local showIcon = mode == "icon"
+    d.maIcon:SetTexture(entry and entry.spellIcon)
+    d.maIcon:SetShown(showIcon)
+    d.maIconBorder:SetShown(showIcon)
     if mode == "icon" then
-        if d.icon then d.icon:SetAlpha(1) end
         d.maText:Hide()
     else
         -- text AND bar modes render as the plain label: a permanent toggle
         -- buff has no duration for a bar to add, and the engine button is the
         -- only restriction-safe visibility carrier either way.
-        if d.icon then d.icon:SetAlpha(0) end
-        d.maText:SetPoint("CENTER", button, "CENTER", 0, 0)
         d.maText:SetText(label)
         d.maText:Show()
     end
@@ -1518,12 +1529,11 @@ end
 
 local function BuildBuffAlertStyle(entry)
     local ma = MA()
-    local px = (EllesmereUI.PP and EllesmereUI.PP.Scale and EllesmereUI.PP.Scale(ma.iconSize or 32)) or ma.iconSize or 32
+    local size = math.max(16, math.min(128, ma.iconSize or 40))
     return {
-        width = px, height = px,
-        iconCrop = true,
-        hideDurationText = true, -- permanent buff: no countdown to draw
-        hideSwipe = true,
+        width = size, height = size,
+        -- The engine owns presence only; mode changes touch our own regions.
+        noRegions = true,
         noTooltips = true,
         applyExtra = BuffAlertApplyExtra,
         maEntry = entry,
